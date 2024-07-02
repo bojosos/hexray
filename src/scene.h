@@ -268,6 +268,9 @@ struct GlobalSettings: public SceneElement {
 	ElementType getElementType() const { return ELEM_SETTINGS; }
 };
 
+class BVHTree;
+class IntersectionInfo;
+
 struct Scene {
 	std::vector<Geometry*> geometries;
 	std::vector<Shader*> shaders;
@@ -279,8 +282,13 @@ struct Scene {
 	Camera* camera = nullptr;
 	GlobalSettings settings;
 
+	BVHTree *bvhTree;
+
 	Scene();
 	~Scene();
+
+	bool intersect(const Ray&, IntersectionInfo& info, Node *&node);
+	bool intersectVisible(const Ray& ray, double distance);
 
 	bool parseScene(const char* sceneFile); //!< Parses a scene file and loads the scene from it. Returns true on success.
 	void beginRender(); //!< Notifies the scene so that a render is about to begin. It calls the beginRender() method of all scene elements

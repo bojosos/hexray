@@ -175,7 +175,7 @@ inline double det(const Vector& a, const Vector& b, const Vector& c)
 	return (a^b) * c;
 }
 
-bool Mesh::intersectTriangle(const Ray& ray, const Triangle& t, IntersectionInfo& info)
+bool Mesh::intersectTriangle(const Ray& ray, const Triangle& t, IntersectionInfo& info, float tMin, float tMax)
 {
 	if (backfaceCulling && dot(ray.dir, t.gnormal) > 0) return false;
 	const Vector& A = vertices[t.v[0]];
@@ -186,7 +186,7 @@ bool Mesh::intersectTriangle(const Ray& ray, const Triangle& t, IntersectionInfo
 	if (fabs(Dcr) < 1e-12) return false;
 	double rDcr = 1/Dcr;
 	double gamma = dot(t.ABcrossAC, H) * rDcr;
-	if (gamma < 0 || gamma > info.dist) return false;
+	if (gamma < tMin || gamma > info.dist || gamma > tMax) return false;
 	double lambda2 = det(H, AC, -ray.dir) * rDcr;
 	if (lambda2 < 0 || lambda2 > 1) return false;
 	double lambda3 = det(AB, H, -ray.dir) * rDcr;
@@ -218,14 +218,14 @@ bool Mesh::intersectTriangle(const Ray& ray, const Triangle& t, IntersectionInfo
 	return true;
 }
 
-bool Mesh::intersectKD(KDTreeNode* node, const BBox& bbox, const Ray& ray, IntersectionInfo& info)
+bool Mesh::intersectKD(KDTreeNode* node, const BBox& bbox, const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
 {
 	if (node->axis == AXIS_NONE) {
 		bool found = false;
 		// in a leaf:
 		for (auto tIdx: *node->triangles) {
 			const Triangle& T = triangles[tIdx];
-			if (intersectTriangle(ray, T, info) && bbox.inside(info.ip)) {
+			if (intersectTriangle(ray, T, info, tMin, tMax) && bbox.inside(info.ip)) {
 				found = true;
 			}
 		}
@@ -237,24 +237,24 @@ bool Mesh::intersectKD(KDTreeNode* node, const BBox& bbox, const Ray& ray, Inter
 		if (ray.start[node->axis] > node->splitPos) std::swap(childOrder[0], childOrder[1]);
 		for (int i = 0; i < 2; i++) {
 			if (childBB[childOrder[i]].testIntersect(ray))
-				if (intersectKD(&node->children[childOrder[i]], childBB[childOrder[i]], ray, info))
+				if (intersectKD(&node->children[childOrder[i]], childBB[childOrder[i]], ray, info, tMin, tMax)) // There is probably something better that can be done with tMin/tMax here
 					return true;
 		}
 		return false;
 	}
 }
 
-bool Mesh::intersect(const Ray& ray, IntersectionInfo& info)
+bool Mesh::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
 {
 	if (!bbox.testIntersect(ray)) return false;
 	info.dist = INF;
 	if (kdroot) {
-		return intersectKD(kdroot, bbox, ray, info);
+		return intersectKD(kdroot, bbox, ray, info, tMin, tMax);
 	} else {
 		for (Triangle& T: triangles) {
-			intersectTriangle(ray, T,info);
+			intersectTriangle(ray, T,info, tMin, tMax);
 		}
-		if (info.dist < INF) {
+		if (info.dist < INF ) {
 			info.geom = this;
 			return true;
 		}

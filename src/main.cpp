@@ -63,16 +63,8 @@ struct TraceContext {
 std::optional<Color> TraceContext::raycast(const Ray& ray)
 {
 	if (ray.depth > scene.settings.maxTraceDepth) return Color(0, 0, 0);
-	closestIntersection.dist = INF;
-	closestNode = nullptr;
-	// check for ray->node intersection:
-	for (auto& node: scene.nodes) {
-		IntersectionInfo info;
-		if (node->intersect(ray, info) && info.dist < closestIntersection.dist) {
-			closestIntersection = info;
-			closestNode = node;
-		}
-	}
+	scene.intersect(ray, closestIntersection, closestNode);
+
 	// check if the closest intersection point is actually a light:
 	std::optional<Color> hitLightColor;
 	for (auto& light: scene.lights) {
@@ -176,12 +168,8 @@ bool visible(const Vector& A, const Vector& B)
 	ray.dir = B - A;
 	ray.dir.normalize();
 	//
-	for (auto& node: scene.nodes) {
-		IntersectionInfo info;
-		if (node->intersect(ray, info) && info.dist < D) {
-			return false;
-		}
-	}
+	if (!scene.intersectVisible(ray, D)) return false;
+
 	for (auto& light: scene.lights) {
 		if (light->intersect(ray, D)) return false;
 	}
@@ -227,7 +215,7 @@ std::function<Ray(double, double, double, double, double)> rayGenerator;
 Color traceSingleRay(double x, double y, bool fast = false)
 {
 	//if (sqr(x - vipX) + sqr(y - vipY) < 100) return Color(1, 1, 0);
-	double u, v;
+	double u=0, v=0;
 	if (scene.camera->dof) unitDiskSample(u, v);
 	//sum += raytrace(scene.camera->getDOFScreenRay(x + randDouble(), y + randDouble(), u, v));
 
@@ -353,8 +341,8 @@ bool renderWithMonteCarlo(bool displayProgress, int raysPerPixel) // returns tru
 		//
 		for (auto& node: scene.nodes) {
 			IntersectionInfo info;
-			if (node->intersect(midRay, info) && info.dist < closestIntersectionDist)
-				closestIntersectionDist = info.dist;
+			// if (node->intersect(midRay, closestIntersectionDist, node) && info.dist < closestIntersectionDist)
+			// 	closestIntersectionDist = info.dist;
 		}
 		//
 		if (closestIntersectionDist < INF)

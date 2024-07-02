@@ -96,6 +96,10 @@ struct Vector {
 		}
 		return maxDim;
 	}
+	Vector reciprocal() const {
+		return Vector(1.0/x, 1.0/y, 1.0/z);
+	}
+
 	inline double& operator[](const int index) { return v[index]; }
 	inline const double& operator[](const int index) const { return v[index]; }
 };

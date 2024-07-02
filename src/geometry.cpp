@@ -28,7 +28,7 @@
 #include "node.h"
 #include <algorithm>
 
-bool Plane::intersect(const Ray& ray, IntersectionInfo& info)
+bool Plane::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
 {
     if (ray.start.y > y && ray.dir.y >= 0) return false;
     if (ray.start.y < y && ray.dir.y <= 0) return false;
@@ -37,6 +37,8 @@ bool Plane::intersect(const Ray& ray, IntersectionInfo& info)
     double toGo = (this->y) - ray.start.y; // -5
     //
     double m = toGo / going;
+    if (m < tMin || m > tMax)
+        return false;
     info.dist = m;
     info.ip = ray.start + ray.dir * m;
     if (fabs(info.ip.x) > limit || fabs(info.ip.z) > limit) return false;
@@ -49,7 +51,7 @@ bool Plane::intersect(const Ray& ray, IntersectionInfo& info)
     return true;
 }
 
-bool Sphere::intersect(const Ray& ray, IntersectionInfo& info)
+bool Sphere::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
 {
     double A = ray.dir.lengthSqr();
     Vector H = ray.start - O;
@@ -68,6 +70,8 @@ bool Sphere::intersect(const Ray& ray, IntersectionInfo& info)
     if (p1 < 0) p = p2;
     else p = p1;
     //
+    if (p < tMin || p > tMax)
+        return false;
     info.dist = p;
     info.ip = ray.start + ray.dir * p;
     info.norm = info.ip - O;
@@ -101,6 +105,8 @@ int Cube::intersectCubeSide(
             double target,     // "B"
             const Ray& ray,
             IntersectionInfo& info,
+            float tMin,
+            float tMax,
             std::function<void(IntersectionInfo&)> genUV)
 {
     // startCoord + dir * p == target
@@ -109,6 +115,8 @@ int Cube::intersectCubeSide(
     if (startCoord > target && dir > 0) return 0;
     //
     double p = (target - startCoord) / dir;
+    if (p < tMin || p > tMax)
+        return 0;
     if (p < info.dist) {
         Vector ip = ray.start + ray.dir * p;
         if (!inBounds(ip.x, O.x, m_halfSide)
@@ -125,7 +133,7 @@ int Cube::intersectCubeSide(
     return 0;
 }
 
-bool Cube::intersect(const Ray& ray, IntersectionInfo& info)
+bool Cube::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
 {
     auto UV_X = [] (IntersectionInfo& info) { info.u = info.ip.y; info.v = info.ip.z; };
     auto UV_Y = [] (IntersectionInfo& info) { info.u = info.ip.x; info.v = info.ip.z; };
@@ -134,14 +142,14 @@ bool Cube::intersect(const Ray& ray, IntersectionInfo& info)
     //
     // +-X:
     info.dist = INF;
-    numIntersections += intersectCubeSide(Vector(-1, 0, 0), ray.start.x, ray.dir.x, O.x - m_halfSide, ray, info, UV_X);
-    numIntersections += intersectCubeSide(Vector(+1, 0, 0), ray.start.x, ray.dir.x, O.x + m_halfSide, ray, info, UV_X);
+    numIntersections += intersectCubeSide(Vector(-1, 0, 0), ray.start.x, ray.dir.x, O.x - m_halfSide, ray, info, tMin, tMax, UV_X);
+    numIntersections += intersectCubeSide(Vector(+1, 0, 0), ray.start.x, ray.dir.x, O.x + m_halfSide, ray, info, tMin, tMax, UV_X);
     // +-Y:
-    numIntersections += intersectCubeSide(Vector( 0,-1, 0), ray.start.y, ray.dir.y, O.y - m_halfSide, ray, info, UV_Y);
-    numIntersections += intersectCubeSide(Vector( 0,+1, 0), ray.start.y, ray.dir.y, O.y + m_halfSide, ray, info, UV_Y);
+    numIntersections += intersectCubeSide(Vector( 0,-1, 0), ray.start.y, ray.dir.y, O.y - m_halfSide, ray, info, tMin, tMax, UV_Y);
+    numIntersections += intersectCubeSide(Vector( 0,+1, 0), ray.start.y, ray.dir.y, O.y + m_halfSide, ray, info, tMin, tMax, UV_Y);
     // +-Z:
-    numIntersections += intersectCubeSide(Vector( 0, 0,-1), ray.start.z, ray.dir.z, O.z - m_halfSide, ray, info, UV_Z);
-    numIntersections += intersectCubeSide(Vector( 0, 0,+1), ray.start.z, ray.dir.z, O.z + m_halfSide, ray, info, UV_Z);
+    numIntersections += intersectCubeSide(Vector( 0, 0,-1), ray.start.z, ray.dir.z, O.z - m_halfSide, ray, info, tMin, tMax, UV_Z);
+    numIntersections += intersectCubeSide(Vector( 0, 0,+1), ray.start.z, ray.dir.z, O.z + m_halfSide, ray, info, tMin, tMax, UV_Z);
     //
     return numIntersections > 0;
 }
@@ -164,7 +172,7 @@ std::vector<IntersectionInfo> findAllIntersections(Ray ray, Geometry* geom)
     return result;
 }
 
-bool CSGBase::intersect(const Ray& ray, IntersectionInfo& info)
+bool CSGBase::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
 {
     std::vector<IntersectionInfo> xLeft = findAllIntersections(ray, left);
     std::vector<IntersectionInfo> xRight = findAllIntersections(ray, right);
@@ -184,6 +192,8 @@ bool CSGBase::intersect(const Ray& ray, IntersectionInfo& info)
         if (infoCandidate.geom == left) inA = !inA;
         else                            inB = !inB;
         if (inside(inA, inB) != initial) {
+            if (infoCandidate.dist < tMin || infoCandidate.dist > tMax)
+                return false;
             info = infoCandidate;
             info.norm = faceforward(ray.dir, info.norm);
             info.geom = this;
@@ -193,12 +203,12 @@ bool CSGBase::intersect(const Ray& ray, IntersectionInfo& info)
     return false;
 }
 
-bool Node::intersect(const Ray& ray, IntersectionInfo& info)
+bool Node::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
 {
 	Ray tRay = ray;
 	tRay.start = T.untransformPoint(ray.start);
 	tRay.dir = T.untransformDir(ray.dir);
-	if (!geom->intersect(tRay, info)) return false;
+	if (!geom->intersect(tRay, info, tMin, tMax)) return false;
 	//
 	info.ip = T.transformPoint(info.ip);
 	info.norm = T.normal(info.norm);

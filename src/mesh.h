@@ -80,11 +80,12 @@ protected:
 	KDTreeStats kdstats;
 
 	void computeBoundingGeometry();
-	bool intersectTriangle(const Ray& ray, const Triangle& t, IntersectionInfo& info);
+	bool intersectTriangle(const Ray& ray, const Triangle& t, IntersectionInfo& info, float tMin, float tMax);
     void prepareTriangles();
+	virtual void expandBox(BBox &other) const override { other.extend(bbox); }
 
 	void buildKD(KDTreeNode* node, BBox bbox, const std::vector<int>& t_list, int depth);
-	bool intersectKD(KDTreeNode* node, const BBox& bbox, const Ray& ray, IntersectionInfo& info);
+	bool intersectKD(KDTreeNode* node, const BBox& bbox, const Ray& ray, IntersectionInfo& info, float tMin, float tMax);
 public:
 	bool faceted = false;
 	bool backfaceCulling = false;
@@ -120,5 +121,5 @@ public:
 
 	void beginRender();
 
-	virtual bool intersect(const Ray& ray, IntersectionInfo& info) override;
+	virtual bool intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) override;
 };

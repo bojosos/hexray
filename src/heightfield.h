@@ -35,6 +35,7 @@ class Heightfield: public Geometry {
 	float getHeight(int x, int y) const;
 	float getHighest(int x, int y, int k) const;
 	Vector getNormal(float x, float y) const;
+	virtual void expandBox(BBox &other) const override { other.extend(bbox); }
 
 	void buildHighMap();
 
@@ -45,7 +46,7 @@ class Heightfield: public Geometry {
 public:
 	bool useOptimization = true;
 	void beginRender();
-	virtual bool intersect(const Ray& ray, IntersectionInfo& info) override;
+	virtual bool intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) override;
 	bool isInside(const Vector& p ) const { return false; }
 	void fillProperties(ParsedBlock& pb);
 };

@@ -76,6 +76,11 @@ struct BBox {
 		vmin.y = min(vmin.y, vec.y); vmax.y = max(vmax.y, vec.y);
 		vmin.z = min(vmin.z, vec.z); vmax.z = max(vmax.z, vec.z);
 	}
+	/// add a sphere to the bounding boxs
+	inline void add(const Vector& O, double R) {
+		add(Vector(O.x - R, O.y - R, O.z - R));
+		add(Vector(O.x + R, O.y + R, O.z + R));
+	}
 	/// Checks if a point is inside the bounding box (borders-inclusive)
 	inline bool inside(const Vector& v) const
 	{
@@ -89,6 +94,26 @@ struct BBox {
 		add(other.vmin);
 		add(other.vmax);
 	}
+	int maxExtent() const
+	{
+		Vector d = vmax - vmin;
+		if (d.x > d.y && d.x > d.z)
+			return 0;
+		else if (d.y > d.z)
+			return 1;
+		return 2;
+	}
+
+	// How far in our box the point is. { 0, 0, 0 } = min, { 1, 1, 1 } = max
+	Vector offset(const Vector& point) const
+	{
+		Vector out = point - vmin;
+		if (vmax.x > vmin.x) out.x /= vmax.x - vmin.x;
+		if (vmax.y > vmin.y) out.y /= vmax.y - vmin.y;
+		if (vmax.z > vmin.z) out.z /= vmax.z - vmin.z;
+		return out;
+	}
+
 	/// Test for ray-box intersection
 	/// @returns true if an intersection exists; false otherwise.
 	inline bool testIntersect(const Ray& ray) const
@@ -206,6 +231,12 @@ struct BBox {
 			}
 		}
 		return false;
+	}
+	// Calculates the area of this bounding box
+	inline float area() const
+	{
+		Vector d = vmax - vmin;
+		return 2 * (d.x * d.y + d.x * d.z + d.y * d.z);
 	}
 	/// Split a bounding box along an given axis at a given position, yielding a two child bboxen
 	/// @param axis - an axis to use for splitting (AXIS_X, AXIS_Y or AXIS_Z)

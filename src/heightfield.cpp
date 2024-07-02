@@ -103,7 +103,7 @@ Vector Heightfield::getNormal(float x, float y) const
 	return v;
 }
 
-bool Heightfield::intersect(const Ray& ray, IntersectionInfo& info)
+bool Heightfield::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
 {
 	Vector step = ray.dir;
 	double distHoriz = sqrt(sqr(step.x) + sqr(step.z));
@@ -151,6 +151,8 @@ bool Heightfield::intersect(const Ray& ray, IntersectionInfo& info)
 			bool b2 = intersectTriangleFast(ray, B, C, D, closestDist);
 
 			if (b1 || b2) {
+				if (closestDist < tMin || closestDist > tMax)
+					return false;
 				// intersection found: ray hits either triangle ABD or BCD. Which one exactly isn't
 				// important, because we calculate the normals by bilinear interpolation of the
 				// precalculated normals at the four corners:

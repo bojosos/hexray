@@ -46,7 +46,9 @@
 #include "mesh.h"
 #include "node.h"
 #include "lights.h"
+#include "bvh.h"
 #include <assert.h>
+
 using std::vector;
 using std::string;
 
@@ -754,11 +756,36 @@ void Scene::visitSceneElements(std::function<void(SceneElement*)> visitor)
 void Scene::beginRender()
 {
     visitSceneElements([](SceneElement* element) { element->beginRender(); });
+	// bvhTree = new BVHTree();
+	// bvhTree->build();
 }
 
 void Scene::beginFrame()
 {
     visitSceneElements([](SceneElement* element) { element->beginFrame(); });
+}
+
+bool Scene::intersect(const Ray& ray, IntersectionInfo& closestIntersection, Node *&closestNode) {
+	closestNode=nullptr;
+	closestIntersection.dist = INF;
+	for (auto& node : scene.nodes) {
+		IntersectionInfo info;
+		if (node->intersect(ray, info, 0.0001f, FLT_MAX) && info.dist < closestIntersection.dist) {
+			closestIntersection = info;
+			closestNode = node;
+		}
+	}
+	return closestNode!=nullptr;
+}
+
+bool Scene::intersectVisible(const Ray& ray, double distance) {
+	for (auto& node: scene.nodes) {
+		IntersectionInfo info;
+		if (node->intersect(ray, info, 0.0001f, FLT_MAX) && info.dist < distance) {
+			return false;
+		}
+	}
+	return true;
 }
 
 void GlobalSettings::fillProperties(ParsedBlock& pb)

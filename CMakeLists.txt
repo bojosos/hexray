@@ -74,6 +74,8 @@ add_executable(hexray
 	src/util.cpp
 	src/util.h
 	src/vector.h
+	src/bvh.cpp
+	src/bvh.h
 )
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	message(STATUS "Setting aggressive optimization flags (per Lecture 13)")
