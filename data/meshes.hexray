@@ -5,14 +5,15 @@ GlobalSettings {
 	frameWidth          1900
 	frameHeight         1060
 	ambientLight        (0.14, 0.15, 0.17)
-	maxTraceDepth		7
-	gi 1
-	numPaths 500
+	maxTraceDepth		8
+	gi                  0
+	numPaths            300
+	prepassSamples      0
 
 }
 
 RectLight {
-	translate (300, 100, 40)
+	translate (300, 80, 40)
 	scale (130, 1, 105)
 	xSubd 4
 	ySubd 4
@@ -24,9 +25,9 @@ RectLight {
 // (to enable the spherical lens camera (which introduces heavy spherical abberation)), replace "Camera" with "SphericalLensCamera"
 
 Camera camera {
-	pos          (115, 33, -100)
-	yaw           11.46
-	pitch        -5.73
+	pos          (0, 0, -100)
+	yaw           0.0
+	pitch         0.0
 	roll          0.0
 	fov           90
 	aspectRatio   1.333
@@ -41,7 +42,7 @@ Camera camera {
 /*
 // top view
 Camera camera {
-	pos          (115, 33, 40)
+	pos          (0, 0, 40)
 	yaw           11.46
 	pitch        -90
 	roll          0.0
@@ -150,26 +151,34 @@ Layered heartMaterial {
 Sphere ball {
 	R 0.5
 }
-
+/*
 Reflection ball_sfc {
 	glossiness 0.34  // reenable to make it beautiful
 	reflColor (0.45, 0.45, 0.45)
 	numSamples 10
 }
-
 Node ball1 {
 	geometry ball
 	shader ball_sfc
-	translate (170.5, 19, 81)
+	translate (150, 100, 100)
+	scale (10, 10, 10)
+}
+
+Node ball3 {
+	geometry ball
+	shader ball_sfc
+	translate (140, 100, 100)
 	scale (10, 10, 10)
 }
 
 Node ball2 {
 	geometry ball
 	shader ball_sfc
-	translate (190, 16, 80.7)
+	translate (-150, -100, 100)
 	scale (10, 10, 10)
 }
+*/
+/*
 
 Node ball3 {
 	geometry ball
@@ -207,6 +216,60 @@ Node heartNode {
 	translate   (90, 12.1, 80)
 	scale       (3, 3, 3)
 }
+
+
+
+Node ball1 {
+	geometry ball
+	shader ball_sfc
+	translate (70.5, 19, 81)
+	scale (10, 10, 10)
+}
+
+Node ball2 {
+	geometry ball
+	shader ball_sfc
+	translate (90, 16, 80.7)
+	scale (10, 10, 10)
+}
+
+Node ball3 {
+	geometry ball
+	shader ball_sfc
+	translate (50.2, 12.5, 79.5)
+	scale (10, 10, 10)
+}
+
+Node wineglass {
+	geometry wineglass
+	//shader	white_flat
+	shader	 glass
+	translate (26, -30, 80)
+	scale (17, 17, 17)
+}
+
+Node dice {
+	geometry   dice
+	shader     flat
+	translate  (15, 10.1, 96)
+	scale      (2.5, 2.5, 2.5)
+	bump       diceBump
+}
+
+Node teapotNode {
+	geometry   teapot
+	shader     white_flat
+	translate  (104, 28.75, 93)
+	scale      (10, 10, 10)
+}
+
+Node heartNode {
+	geometry    heart
+	shader      heartMaterial
+	translate   (0, 12.1, 80)
+	scale       (3, 3, 3)
+}
+*/
 
 // 5. The cubemap environment:
 CubemapEnvironment environment {

@@ -772,7 +772,7 @@ void Scene::beginFrame()
 }
 
 bool Scene::intersect(const Ray& ray, IntersectionInfo& closestIntersection, Node *&closestNode) {
-#if 0
+#if 1
 	closestNode=nullptr;
 	closestIntersection.dist = INF;
 	IntersectionInfo info;
@@ -796,7 +796,7 @@ bool Scene::intersect(const Ray& ray, IntersectionInfo& closestIntersection, Nod
 }
 
 bool Scene::intersectVisible(const Ray& ray, double distance) {
-#if 0
+#if 1
 	IntersectionInfo info;
 	Node *tmp;
 	return bvhTree->intersect(ray, 0.0001, distance, info, tmp);

@@ -528,6 +528,27 @@ int main(int argc, char** argv)
 		printf("Could not parse the scene file (%s)!\n", sceneFile);
 		return 1;
 	}
+	Sphere *sphere = new Sphere();
+	sphere->R = 0.5;
+	Reflection *refl = new Reflection();
+	refl->glossiness = 0.34;
+	refl->reflColor = Color(0.45, 0.45, 0.45);
+	refl->numSamples = 3;
+	// 6 samples BVH 127s, no BVH 2mins - 1 row of buckets
+	// 3 samples BVH ~4s wat?, no BVH ~1min
+	for (int i = -15; i < 15; i++) {
+		for (int j = -15; j < 15; j++) {
+			Node *node = new Node();
+			node->geom=sphere;
+			Transform T;
+			T.scale(8);
+			T.translate(Vector(i * 10, j * 10 , 100));
+			node->T = T;
+			node->shader = refl;
+			std::strcpy(node->name, ("ball_" + std::to_string(i) + "_" + std::to_string(j)).c_str());
+			scene.nodes.push_back(node);
+		}
+	}
 	// configure the thread pool:
 	if (scene.settings.numThreads <= 0) scene.settings.numThreads = std::thread::hardware_concurrency();
 	printf("Rendering on %d threads\n", scene.settings.numThreads);

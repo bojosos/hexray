@@ -196,12 +196,12 @@ bool BVHTree::intersect(const Ray& ray, double tMin, double tMax, IntersectionIn
 			if (node->primitiveCount > 0) { // leaf
 				for (int i = 0; i < node->primitiveCount; i++) {
 					IntersectionInfo info;
-					if (m_FinalPrims[node->primitivesOffset + i]->intersect(ray, info, tMin, tMax) && tMax > intersection.dist) {
+					if (m_FinalPrims[node->primitivesOffset + i]->intersect(ray, info, tMin, tMax) && tMax > info.dist) {
 						// return true;
 						hit = true; // Need to keep going, since there might be closer intersections, so just update
 						closestNode = m_FinalPrims[node->primitivesOffset + i];
 						// closestNode = m_FinalPrims[1];
-						tMax = intersection.dist;
+						tMax = info.dist;
 						intersection=info;
 					}
 				}
