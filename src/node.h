@@ -34,7 +34,7 @@ struct Node: public Intersectable, public SceneElement {
 	Transform T;
 	Texture* bump = nullptr;
 
-	virtual bool intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) override;
+	virtual bool intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax) override;
 	//
 	virtual ElementType getElementType() const override { return ELEM_NODE; }
 	void fillProperties(ParsedBlock& pb)
@@ -44,4 +44,6 @@ struct Node: public Intersectable, public SceneElement {
 		pb.getTransformProp(T);
 		pb.getTextureProp("bump", &bump);
 	}
+
+	void expandBox(BBox &other) { geom->expandBox(other); other.vmin=T.transformPoint(other.vmin); other.vmax=T.transformPoint(other.vmax); }
 };

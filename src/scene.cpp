@@ -732,6 +732,7 @@ Scene::Scene()
 Scene::~Scene()
 {
 	visitSceneElements([this] (SceneElement* el) { if (el && el != &this->settings) delete el; });
+	delete bvhTree;
 }
 
 bool Scene::parseScene(const char* filename)
@@ -755,9 +756,14 @@ void Scene::visitSceneElements(std::function<void(SceneElement*)> visitor)
 
 void Scene::beginRender()
 {
-    visitSceneElements([](SceneElement* element) { element->beginRender(); });
-	// bvhTree = new BVHTree();
-	// bvhTree->build();
+	bvhTree = new BVHTree();
+    visitSceneElements([this](SceneElement* element) {
+		element->beginRender();
+		if (element->getElementType()==ELEM_NODE) {
+			bvhTree->addGeometry((Node*)element);
+		}
+	});
+	bvhTree->build();
 }
 
 void Scene::beginFrame()
@@ -766,26 +772,43 @@ void Scene::beginFrame()
 }
 
 bool Scene::intersect(const Ray& ray, IntersectionInfo& closestIntersection, Node *&closestNode) {
+#if 0
+	closestNode=nullptr;
+	closestIntersection.dist = INF;
+	IntersectionInfo info;
+	if (bvhTree->intersect(ray, 0.0001f, INF, info, closestNode)) {
+		closestIntersection = info;
+		return true;
+	}
+	return false;
+#else
 	closestNode=nullptr;
 	closestIntersection.dist = INF;
 	for (auto& node : scene.nodes) {
 		IntersectionInfo info;
-		if (node->intersect(ray, info, 0.0001f, FLT_MAX) && info.dist < closestIntersection.dist) {
+		if (node->intersect(ray, info, 0.0001f, INF) && info.dist < closestIntersection.dist) {
 			closestIntersection = info;
 			closestNode = node;
 		}
 	}
 	return closestNode!=nullptr;
+#endif
 }
 
 bool Scene::intersectVisible(const Ray& ray, double distance) {
+#if 0
+	IntersectionInfo info;
+	Node *tmp;
+	return bvhTree->intersect(ray, 0.0001, distance, info, tmp);
+#else
 	for (auto& node: scene.nodes) {
 		IntersectionInfo info;
-		if (node->intersect(ray, info, 0.0001f, FLT_MAX) && info.dist < distance) {
+		if (node->intersect(ray, info, 0.0001, INF) && info.dist < distance) {
 			return false;
 		}
 	}
 	return true;
+#endif
 }
 
 void GlobalSettings::fillProperties(ParsedBlock& pb)

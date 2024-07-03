@@ -28,7 +28,7 @@
 #include "node.h"
 #include <algorithm>
 
-bool Plane::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
+bool Plane::intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax)
 {
     if (ray.start.y > y && ray.dir.y >= 0) return false;
     if (ray.start.y < y && ray.dir.y <= 0) return false;
@@ -51,7 +51,7 @@ bool Plane::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float 
     return true;
 }
 
-bool Sphere::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
+bool Sphere::intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax)
 {
     double A = ray.dir.lengthSqr();
     Vector H = ray.start - O;
@@ -105,8 +105,8 @@ int Cube::intersectCubeSide(
             double target,     // "B"
             const Ray& ray,
             IntersectionInfo& info,
-            float tMin,
-            float tMax,
+            double tMin,
+            double tMax,
             std::function<void(IntersectionInfo&)> genUV)
 {
     // startCoord + dir * p == target
@@ -133,7 +133,7 @@ int Cube::intersectCubeSide(
     return 0;
 }
 
-bool Cube::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
+bool Cube::intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax)
 {
     auto UV_X = [] (IntersectionInfo& info) { info.u = info.ip.y; info.v = info.ip.z; };
     auto UV_Y = [] (IntersectionInfo& info) { info.u = info.ip.x; info.v = info.ip.z; };
@@ -172,7 +172,7 @@ std::vector<IntersectionInfo> findAllIntersections(Ray ray, Geometry* geom)
     return result;
 }
 
-bool CSGBase::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
+bool CSGBase::intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax)
 {
     std::vector<IntersectionInfo> xLeft = findAllIntersections(ray, left);
     std::vector<IntersectionInfo> xRight = findAllIntersections(ray, right);
@@ -203,8 +203,7 @@ bool CSGBase::intersect(const Ray& ray, IntersectionInfo& info, float tMin, floa
     return false;
 }
 
-bool Node::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
-{
+bool Node::intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax) {
 	Ray tRay = ray;
 	tRay.start = T.untransformPoint(ray.start);
 	tRay.dir = T.untransformDir(ray.dir);

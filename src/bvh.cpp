@@ -1,6 +1,6 @@
 #include "bbox.h"
 #include "bvh.h"
-#include "geometry.h"
+#include "node.h"
 
 #include <functional>
 
@@ -8,12 +8,12 @@ BVHTree::~BVHTree() {
 	clear();
 }
 
-void BVHTree::addGeometry(Geometry *geometry)
+void BVHTree::addGeometry(Node *node)
 {
 	BBox box;
-	geometry->expandBox(box);
-	m_Primitives.push_back({ m_PrimIdx++, box });
-	m_FinalPrims.push_back(geometry);
+	node->expandBox(box);
+	m_Primitives.push_back(PrimInfo(m_PrimIdx++, box));
+	m_FinalPrims.push_back(node);
 }
 
 void BVHTree::clear()
@@ -71,17 +71,17 @@ void BVHTree::build()
 		{
 			int primitiveCount = end - start;
 			int maxBVHNodes = 2 * primitiveCount;
-			Node* nodes = new Node[maxBVHNodes];
+			BVHNode* nodes = new BVHNode[maxBVHNodes];
 			treeletsToBuild.push_back({ start, primitiveCount, nodes });
 			start = end;
 		}
 	}
 
-	printf("%lld treelets", treeletsToBuild.size() + 1);
+	printf("%lld treelets\n", treeletsToBuild.size() + 1);
 
 	int primitiveCount = mortonPrims.size() - start;
 	int maxBVHNodes = 2 * primitiveCount;
-	treeletsToBuild.push_back({ start, primitiveCount, new Node[maxBVHNodes] });
+	treeletsToBuild.push_back({ start, primitiveCount, new BVHNode[maxBVHNodes] });
 
 	// Could also do this in parallel
 	int orderedPrimsOffset = 0;
@@ -91,16 +91,16 @@ void BVHTree::build()
 	for (int i = 0; i < treeletsToBuild.size(); i++)
 		treeletsToBuild[i].nodes = buildTreelets(treeletsToBuild[i].nodes, &mortonPrims[treeletsToBuild[i].startIdx], treeletsToBuild[i].primitiveCount, totalNodes, orderedPrimsOffset, firstBitIndex);
 
-	std::vector<Node*> finishedTreelets; // Create the rest of the tree using SAH
+	std::vector<BVHNode*> finishedTreelets; // Create the rest of the tree using SAH
 	finishedTreelets.reserve(treeletsToBuild.size());
 	for (Treelet& treelet : treeletsToBuild)
 		finishedTreelets.push_back(treelet.nodes);
-	Node* root = connectTreelets(finishedTreelets, 0, finishedTreelets.size(), totalNodes);
+	BVHNode* root = connectTreelets(finishedTreelets, 0, finishedTreelets.size(), totalNodes);
 	m_SearchNodes = new LinearNode[totalNodes];
 	m_FinalPrims.swap(m_OrderedPrims);
 	m_Primitives.clear();
 
-	std::function<void(Node*, const std::string&, bool)> printBVH = [&](Node* node, const std::string& prefix, bool isLeft) {
+	std::function<void(BVHNode*, const std::string&, bool)> printBVH = [&](BVHNode* node, const std::string& prefix, bool isLeft) {
 		printf("%s", prefix.c_str());
 		printf(isLeft ? "|--" : "L--");
 		if (node->children[0] != nullptr)
@@ -119,12 +119,12 @@ void BVHTree::build()
 	// printf("Built BVH with %d nodes in %f seconds\n", totalNodes, Timer::toMs<float>(timer.elapsedNs()) / 1000.0f);
 }
 
-BVHTree::Node* BVHTree::buildTreelets(Node *&buildNodes, MortonPrim* mortonPrims, int primitiveCount, int& totalNodes, int& orderedPrimsOffset, int bitIdx)
+BVHTree::BVHNode* BVHTree::buildTreelets(BVHNode *&buildNodes, MortonPrim* mortonPrims, int primitiveCount, int& totalNodes, int& orderedPrimsOffset, int bitIdx)
 {
 	if (bitIdx == -1 || primitiveCount < m_MaxPrimsPerNode) // We need to create a leaf, either because we can fit the nodes left in a single leaf, or because we can't split
 	{
 		totalNodes++;
-		Node* node = buildNodes++;
+		BVHNode* node = buildNodes++;
 		BBox bounds;
 		int firstPrimOffset = orderedPrimsOffset;
 		orderedPrimsOffset += primitiveCount;
@@ -155,17 +155,16 @@ BVHTree::Node* BVHTree::buildTreelets(Node *&buildNodes, MortonPrim* mortonPrims
 		}
 		int splitOffset = r; // Primitives are already on correct sides of plane
 		totalNodes++;
-		Node* node = buildNodes++;
-		Node* node1 = buildTreelets(buildNodes, mortonPrims, splitOffset, totalNodes, orderedPrimsOffset, bitIdx - 1);
-		Node* node2 = buildTreelets(buildNodes, &mortonPrims[splitOffset], primitiveCount - splitOffset, totalNodes, orderedPrimsOffset, bitIdx - 1);
+		BVHNode* node = buildNodes++;
+		BVHNode* node1 = buildTreelets(buildNodes, mortonPrims, splitOffset, totalNodes, orderedPrimsOffset, bitIdx - 1);
+		BVHNode* node2 = buildTreelets(buildNodes, &mortonPrims[splitOffset], primitiveCount - splitOffset, totalNodes, orderedPrimsOffset, bitIdx - 1);
 		int axis = bitIdx % 3;
 		node->initInterior(axis, node1, node2);
 		return node;
 	}
 }
 
-int BVHTree::flatten(Node* node, int& offset)
-{
+int BVHTree::flatten(BVHNode* node, int& offset) {
 	// Store the tree in dfs parent left right order
 	LinearNode* linearNode = &m_SearchNodes[offset];
 	linearNode->bounds = node->bounds;
@@ -185,38 +184,33 @@ int BVHTree::flatten(Node* node, int& offset)
 	return myOffset;
 }
 
-bool BVHTree::intersect(const Ray& ray, float tMin, float tMax, IntersectionInfo& intersection)
-{
-	Vector invDir = ray.dir.reciprocal();
-	int negativeDir[3] = { invDir.x < 0, invDir.y < 0, invDir.z < 0 };
+bool BVHTree::intersect(const Ray& ray, double tMin, double tMax, IntersectionInfo& intersection, Node *&closestNode) {
+	int negativeDir[3] = { ray.dir.x < 0, ray.dir.y < 0, ray.dir.z < 0 };
 	// Offset of next element in stack, offset in nodes list
 	int toVisitOffset = 0, currentNodeIndex = 0;
 	int nodesToVisit[64];
 	bool hit = false;
-	while (true)
-	{
+	while (true) {
 		const LinearNode* node = &m_SearchNodes[currentNodeIndex];
-		if (node->bounds.testIntersect(ray))
-		{
-			if (node->primitiveCount > 0) // leaf
-			{
-				for (int i = 0; i < node->primitiveCount; i++)
-				{
-					if (m_FinalPrims[node->primitivesOffset + i]->intersect(ray, intersection, tMin, tMax))
-					{
+		if (node->bounds.testIntersect(ray)) {
+			if (node->primitiveCount > 0) { // leaf
+				for (int i = 0; i < node->primitiveCount; i++) {
+					IntersectionInfo info;
+					if (m_FinalPrims[node->primitivesOffset + i]->intersect(ray, info, tMin, tMax) && tMax > intersection.dist) {
 						// return true;
 						hit = true; // Need to keep going, since there might be closer intersections, so just update
+						closestNode = m_FinalPrims[node->primitivesOffset + i];
+						// closestNode = m_FinalPrims[1];
 						tMax = intersection.dist;
+						intersection=info;
 					}
 				}
 
 				if (toVisitOffset == 0) break;
 				currentNodeIndex = nodesToVisit[--toVisitOffset];
 			}
-			else // interior, so visit child
-			{
-				if (negativeDir[node->axis]) // if the axis we split on has negative direction, visit the second child. In 2D this is:
-				{
+			else { // interior, so visit child
+				if (negativeDir[node->axis]) { // if the axis we split on has negative direction, visit the second child. In 2D this is:
 					/*
 					Let's say we split on the x axis. Then we want to visit the second child first if the ray is going from right to left, and the first child if the ray is going from left to right.
 					This way we can easily discard the second child, since it would hit the box on the left and it's closer
@@ -239,15 +233,13 @@ bool BVHTree::intersect(const Ray& ray, float tMin, float tMax, IntersectionInfo
 					nodesToVisit[toVisitOffset++] = currentNodeIndex + 1;
 					currentNodeIndex = node->secondChildOffset;
 				}
-				else
-				{
+				else {
 					nodesToVisit[toVisitOffset++] = node->secondChildOffset;
 					currentNodeIndex++;
 				}
 			}
 		}
-		else
-		{
+		else {
 			if (toVisitOffset == 0)
 				break;
 			currentNodeIndex = nodesToVisit[--toVisitOffset];
@@ -256,11 +248,11 @@ bool BVHTree::intersect(const Ray& ray, float tMin, float tMax, IntersectionInfo
 	return hit;
 }
 
-BVHTree::Node* BVHTree::connectTreelets(std::vector<Node*>& roots, int start, int end, int& totalNodes) const {
+BVHTree::BVHNode* BVHTree::connectTreelets(std::vector<BVHNode*>& roots, int start, int end, int& totalNodes) const {
 	int nodeCount = end - start;
 	if (nodeCount== 1) return roots[start];
 	totalNodes++;
-	Node* node = new Node();
+	BVHNode* node = new BVHNode();
 	BBox bounds;
 	for (int i = start; i < end; i++)
 		bounds.extend(roots[i]->bounds);
@@ -327,7 +319,7 @@ BVHTree::Node* BVHTree::connectTreelets(std::vector<Node*>& roots, int start, in
 	}
 
 	// 100% not copied from pbr book
-	Node** pmid = std::partition(&roots[start], &roots[end - 1] + 1, [=](const Node* node)
+	BVHNode** pmid = std::partition(&roots[start], &roots[end - 1] + 1, [=](const BVHNode* node)
 		{
 			float centroid = (node->bounds.vmin[dim] + node->bounds.vmax[dim]) * 0.5f;
 			int b = bucketCount * (((centroid - centroidBounds.vmin[dim]) / (centroidBounds.vmax[dim] - centroidBounds.vmin[dim])));

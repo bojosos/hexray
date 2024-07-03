@@ -28,6 +28,7 @@
 #include <functional>
 #include "scene.h"
 #include "bbox.h"
+#include <cassert>
 
 class Geometry;
 
@@ -46,14 +47,14 @@ struct IntersectionInfo {
  */
 class Intersectable {
 public:
-	virtual bool intersect(const Ray&, IntersectionInfo& info, float tMin=0.001f, float tMax=FLT_MAX) = 0;
+	virtual bool intersect(const Ray&, IntersectionInfo& info, double tMin=0.001f, double tMax=FLT_MAX) = 0;
 };
 
 class Geometry: public Intersectable, public SceneElement {
 public:
     //
    	virtual ElementType getElementType() const override { return ELEM_GEOMETRY; }
-    virtual void expandBox(BBox &other) const {}
+    virtual void expandBox(BBox &other) const = 0;
 };
 
 class Plane: public Geometry {
@@ -65,8 +66,9 @@ public:
 		pb.getDoubleProp("y", &y);
 		pb.getDoubleProp("limit", &limit);
 	}
-    // virtual void expandBox(BBox &other) const override {  }
-    virtual bool intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) override;
+    // TODO: Fix this
+    virtual void expandBox(BBox &other) const override { assert(false); }
+    virtual bool intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax) override;
 };
 
 class Sphere: public Geometry {
@@ -81,7 +83,7 @@ public:
         pb.getDoubleProp("uvscaling", &uvscaling, 1e-6);
 	}
     virtual void expandBox(BBox &other) const override { other.add(O, R); }
-    virtual bool intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) override;
+    virtual bool intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax) override;
 };
 
 class Cube: public Geometry {
@@ -93,8 +95,8 @@ class Cube: public Geometry {
         double target,
         const Ray& ray,
         IntersectionInfo& info,
-        float tMin,
-        float tMax,
+        double tMin,
+        double tMax,
         std::function<void(IntersectionInfo&)> genUV
         );
 public:
@@ -110,13 +112,13 @@ public:
         m_halfSide = side * 0.5;
     }
     virtual void expandBox(BBox &other) const override { other.add(O, side); }
-    virtual bool intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) override;
+    virtual bool intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax) override;
 };
 
 class CSGBase: public Geometry {
     Geometry* left, *right;
 public:
-    virtual bool intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) override;
+    virtual bool intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax) override;
     virtual bool inside(bool inA, bool inB) = 0;
 	void fillProperties(ParsedBlock& pb)
 	{

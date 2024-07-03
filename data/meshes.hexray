@@ -2,23 +2,29 @@
 
 // 1. First, some global settings
 GlobalSettings {
-	frameWidth          640
-	frameHeight         480
+	frameWidth          1900
+	frameHeight         1060
 	ambientLight        (0.14, 0.15, 0.17)
 	maxTraceDepth		7
+	gi 1
+	numPaths 500
+
 }
 
-PointLight {
-	pos            (160, 80, 40)
+RectLight {
+	translate (300, 100, 40)
+	scale (130, 1, 105)
+	xSubd 4
+	ySubd 4
 	color          (1, 1, 1)
-	power           5000
+	power           500000
 }
 
 // 2. A camera
 // (to enable the spherical lens camera (which introduces heavy spherical abberation)), replace "Camera" with "SphericalLensCamera"
 
 Camera camera {
-	pos          (115, 33, 40)
+	pos          (115, 33, -100)
 	yaw           11.46
 	pitch        -5.73
 	roll          0.0
@@ -44,11 +50,6 @@ Camera camera {
 }
 */
 
-Plane floor {
-	y      0
-	limit   64
-}
-
 CheckerTexture checker {
 	color1    (0.5, 0.5, 0.25)
 	color2    (0.25, 0.25, 0.25)
@@ -59,14 +60,6 @@ Lambert floorShader {
 	color (1, 1, 1)
 	texture  checker
 }
-
-// 3. A floor node, using a plane as a geometry, and a flat shader with a checker texture
-Node floorNode {
-	geometry  floor
-	shader    floorShader
-	translate (100, 0, 96)
-}
-
 
 Mesh dice {
 	file "geom/truncated_cube.obj"
@@ -89,12 +82,10 @@ Mesh teapot {
 	recenter true
 }
 
-/*
 Mesh wineglass {
 	file "geom/newwine.obj"
 	backfaceCulling false
 }
-*/
 
 CheckerTexture teapot_checker {
 	color1 (0.9, 0.1, 0.1)
@@ -156,13 +147,12 @@ Layered heartMaterial {
 	layer reflection (0.2, 0.2, 0.3)
 }
 
-/*
 Sphere ball {
 	R 0.5
 }
 
 Reflection ball_sfc {
-//  glossiness 0.34  // reenable to make it beautiful
+	glossiness 0.34  // reenable to make it beautiful
 	reflColor (0.45, 0.45, 0.45)
 	numSamples 10
 }
@@ -170,35 +160,36 @@ Reflection ball_sfc {
 Node ball1 {
 	geometry ball
 	shader ball_sfc
-	translate (125.5, 19, 81)
+	translate (170.5, 19, 81)
+	scale (10, 10, 10)
 }
 
 Node ball2 {
 	geometry ball
 	shader ball_sfc
-	translate (126, 16, 80.7)
+	translate (190, 16, 80.7)
+	scale (10, 10, 10)
 }
 
 Node ball3 {
 	geometry ball
 	shader ball_sfc
-	translate (126.2, 12.5, 79.5)
+	translate (150.2, 12.5, 79.5)
+	scale (10, 10, 10)
 }
 
 Node wineglass {
 	geometry wineglass
 	//shader	white_flat
 	shader	 glass
-	translate (126, 0, 80)
+	translate (126, -30, 80)
 	scale (17, 17, 17)
 }
-*/
 
 Node dice {
 	geometry   dice
 	shader     flat
 	translate  (115, 10.1, 96)
-	rotate     (63.02, 0, 0)
 	scale      (2.5, 2.5, 2.5)
 	bump       diceBump
 }
@@ -207,7 +198,6 @@ Node teapotNode {
 	geometry   teapot
 	shader     white_flat
 	translate  (104, 28.75, 93)
-	rotate     (189.08, 0, 17.19)
 	scale      (10, 10, 10)
 }
 
@@ -215,7 +205,6 @@ Node heartNode {
 	geometry    heart
 	shader      heartMaterial
 	translate   (90, 12.1, 80)
-	rotate      (120.32, 0, 0)
 	scale       (3, 3, 3)
 }
 

@@ -175,7 +175,7 @@ inline double det(const Vector& a, const Vector& b, const Vector& c)
 	return (a^b) * c;
 }
 
-bool Mesh::intersectTriangle(const Ray& ray, const Triangle& t, IntersectionInfo& info, float tMin, float tMax)
+bool Mesh::intersectTriangle(const Ray& ray, const Triangle& t, IntersectionInfo& info, double tMin, double tMax)
 {
 	if (backfaceCulling && dot(ray.dir, t.gnormal) > 0) return false;
 	const Vector& A = vertices[t.v[0]];
@@ -218,7 +218,7 @@ bool Mesh::intersectTriangle(const Ray& ray, const Triangle& t, IntersectionInfo
 	return true;
 }
 
-bool Mesh::intersectKD(KDTreeNode* node, const BBox& bbox, const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
+bool Mesh::intersectKD(KDTreeNode* node, const BBox& bbox, const Ray& ray, IntersectionInfo& info, double tMin, double tMax)
 {
 	if (node->axis == AXIS_NONE) {
 		bool found = false;
@@ -244,7 +244,7 @@ bool Mesh::intersectKD(KDTreeNode* node, const BBox& bbox, const Ray& ray, Inter
 	}
 }
 
-bool Mesh::intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax)
+bool Mesh::intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax)
 {
 	if (!bbox.testIntersect(ray)) return false;
 	info.dist = INF;

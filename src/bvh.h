@@ -1,6 +1,6 @@
 #include "bbox.h"
 
-class Geometry;
+class Node;
 class IntersectionInfo;
 
 class BVHTree {
@@ -15,7 +15,7 @@ private:
 		Vector centroid;
 	};
 
-	struct Node
+	struct BVHNode
 	{
 		void initLeaf(int first, int n, const BBox& b)
 		{
@@ -25,7 +25,7 @@ private:
 			children[0] = children[1] = nullptr;
 		}
 
-		void initInterior(int axis, Node* child1, Node* child2)
+		void initInterior(int axis, BVHNode* child1, BVHNode* child2)
 		{
 			bounds.extend(child1->bounds);
 			bounds.extend(child2->bounds);
@@ -37,13 +37,13 @@ private:
 
 		int primitiveCount, firstPrimOffset, splitAxis;
 		BBox bounds;
-		Node* children[2];
+		BVHNode* children[2];
 	};
 
 	struct Treelet
 	{
 		int startIdx, primitiveCount;
-		Node* nodes;
+		BVHNode* nodes;
 	};
 
 	struct MortonPrim {
@@ -66,20 +66,20 @@ private:
 	};
 public:
 	~BVHTree();
-	void addGeometry(Geometry *geometry);
+	void addGeometry(Node *node);
 	void build();
-	bool intersect(const Ray& ray, float tMin, float tMax, IntersectionInfo& intersection);
+	bool intersect(const Ray& ray, double tMin, double tMax, IntersectionInfo& intersection, Node *&closestNode);
 private:
 	void clear();
 	uint64_t weirdShift(uint64_t x);
 	uint64_t encodeMorton3(const Vector& val);
-	Node* buildTreelets(Node *&buildNodes, MortonPrim* mortonPrims, int primitiveCount, int& totalNodes, int& orderedPrimsOffset, int bitIdx);
-	Node* connectTreelets(std::vector<Node*>& roots, int start, int end, int& totalNodes) const;
-	int flatten(Node* node, int& offset);
+	BVHNode* buildTreelets(BVHNode *&buildNodes, MortonPrim* mortonPrims, int primitiveCount, int& totalNodes, int& orderedPrimsOffset, int bitIdx);
+	BVHNode* connectTreelets(std::vector<BVHNode*>& roots, int start, int end, int& totalNodes) const;
+	int flatten(BVHNode* node, int& offset);
 
 	std::vector<PrimInfo> m_Primitives;
-	std::vector<Geometry*> m_OrderedPrims;
-	std::vector<Geometry*> m_FinalPrims;
+	std::vector<Node*> m_OrderedPrims;
+	std::vector<Node*> m_FinalPrims;
 	LinearNode* m_SearchNodes = nullptr;
 	uint32_t m_MaxPrimsPerNode = 1;
 	float m_IntersectionCost = 1.0f; // cost of calculating intersection

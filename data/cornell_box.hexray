@@ -5,7 +5,7 @@ GlobalSettings {
 	ambientLight        (0.15, 0.15, 0.15)
 	maxTraceDepth 6
 	gi            1
-	numPaths 200
+	numPaths 500
 }
 
 Camera camera {

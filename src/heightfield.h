@@ -46,7 +46,7 @@ class Heightfield: public Geometry {
 public:
 	bool useOptimization = true;
 	void beginRender();
-	virtual bool intersect(const Ray& ray, IntersectionInfo& info, float tMin, float tMax) override;
+	virtual bool intersect(const Ray& ray, IntersectionInfo& info, double tMin, double tMax) override;
 	bool isInside(const Vector& p ) const { return false; }
 	void fillProperties(ParsedBlock& pb);
 };

@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <string>
+#include <cassert>
 #include <math.h>
 #include "vector.h"
 #include "util.h"
@@ -62,7 +63,7 @@ bool intersectTriangleFast(const Ray& ray, const Vector& A, const Vector& B, con
  */
 struct BBox {
 	Vector vmin, vmax;
-	BBox() {}
+	BBox() { makeEmpty(); }
 	/// makes the box empty (so it has no volume)
 	inline void makeEmpty() {
 		vmin.set(+INF, +INF, +INF);
@@ -109,8 +110,11 @@ struct BBox {
 	{
 		Vector out = point - vmin;
 		if (vmax.x > vmin.x) out.x /= vmax.x - vmin.x;
+		else out.x /= vmin.x - vmax.x;
 		if (vmax.y > vmin.y) out.y /= vmax.y - vmin.y;
+		else out.y /= vmin.y - vmax.y;
 		if (vmax.z > vmin.z) out.z /= vmax.z - vmin.z;
+		else out.z /= vmin.z - vmax.z;
 		return out;
 	}
 
@@ -236,6 +240,7 @@ struct BBox {
 	inline float area() const
 	{
 		Vector d = vmax - vmin;
+		assert(d.x >= 0 && d.y >= 0 && d.z >= 0);
 		return 2 * (d.x * d.y + d.x * d.z + d.y * d.z);
 	}
 	/// Split a bounding box along an given axis at a given position, yielding a two child bboxen

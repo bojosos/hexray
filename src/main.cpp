@@ -88,7 +88,7 @@ std::optional<Color> TraceContext::raycast(const Ray& ray)
 		return scene.settings.backgroundColor;
 	}
 	// if we intersect a node which has a bump map applied, modify our intersection point normal:
-	if (closestNode->bump) {
+	if (closestNode  && closestNode->bump) {
 		closestNode->bump->modifyNormal(closestIntersection);
 	}
 	return {};
@@ -513,7 +513,8 @@ void renderThreadEntry() {
 	}
 }
 
-const char* DEFAULT_SCENE = "data/simple.hexray";
+// const char* DEFAULT_SCENE = "data/simple.hexray";
+const char* DEFAULT_SCENE = "data/meshes.hexray";
 
 int main(int argc, char** argv)
 {
